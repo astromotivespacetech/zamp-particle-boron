@@ -9,7 +9,6 @@ unsigned char rxBuf[8];
 char obsidianString[128];                        // Array to store string
 String victronString;
 
-
 #define CAN0_INT A1                              // Set INT to pin A1
 MCP_CAN CAN0(A2);                               // Set CS to pin A2
 
@@ -19,6 +18,7 @@ unsigned long obsidianLast = 0;
 int publishInterval = 60000;                    // 60 second intervals
 
 void setup() {
+    
     Serial.begin(115200);
 
     // Wait 10 seconds for USB debug serial to be connected (plus 1 more)
@@ -36,7 +36,6 @@ void setup() {
     CAN0.setMode(MCP_NORMAL);                     // Set operation mode to normal so the MCP2515 sends acks to received data.
 
     pinMode(CAN0_INT, INPUT);                            // Configuring pin for /INT input
-  
 }
 
 void loop() {
@@ -49,6 +48,7 @@ void loop() {
 
         if (rxId == 0x99FEB38F) {
             if ((unsigned long)(now - victronLast) >= publishInterval) {
+                
                 victronLast = now;
   
                 int x = (rxBuf[2]<<8) + (rxBuf[1]);
@@ -72,12 +72,16 @@ void loop() {
             obsidianLast = millis();
             publishFlag = 1;
         }
+        
+        while (Serial.available() > 0) {
 
-        char c = char(Serial.read());
-        victronString.concat(c);
+            char c = char(Serial.read());
+            victronString.concat(c);
+        }
     }
     
     if ((publishFlag) && (unsigned long)(now - obsidianLast) >= publishInterval) {
+       
         publishFlag = 0;
         obsidianLast = now;
         
@@ -85,5 +89,4 @@ void loop() {
         
         victronString = "";
     }
-  
 }
