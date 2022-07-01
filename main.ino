@@ -6,15 +6,16 @@
 long unsigned int rxId;
 unsigned char len = 0;
 unsigned char rxBuf[8];
-char obsidianString[128];                        // Array to store string
+char cinderString[128];                        // Array to store string
 String victronString;
 
 #define CAN0_INT A1                              // Set INT to pin A1
 MCP_CAN CAN0(A2);                               // Set CS to pin A2
 
-unsigned long victonLast = 0;
-unsigned long obsidianLast = 0;
+unsigned long victronLast = 0;
+unsigned long cinderLast = 0;
 
+int publishFlag = 0;
 int publishInterval = 60000;                    // 60 second intervals
 
 void setup() {
@@ -47,9 +48,9 @@ void loop() {
         CAN0.readMsgBuf(&rxId, &len, rxBuf);      // Read data: len = data length, buf = data byte(s)
 
         if (rxId == 0x99FEB38F) {
-            if ((unsigned long)(now - victronLast) >= publishInterval) {
+            if ((unsigned long)(now - cinderLast) >= publishInterval) {
                 
-                victronLast = now;
+                cinderLast = now;
   
                 int x = (rxBuf[2]<<8) + (rxBuf[1]);
                 float v = (float)x * 0.05;
@@ -59,9 +60,9 @@ void loop() {
             
                 int z = rxBuf[6];
                 
-                sprintf(msgString, "V %.2f A %.2f OS %d", v, a, z);
+                sprintf(cinderString, "V %.2f A %.2f OS %d", v, a, z);
             
-                Particle.publish("new-data", msgString, PRIVATE);
+                Particle.publish("new-data", cinderString, PRIVATE);
             }
         }
     }
@@ -69,7 +70,7 @@ void loop() {
     if (Serial.available()) {
 
         if (publishFlag == 0) {
-            obsidianLast = millis();
+            victronLast = millis();
             publishFlag = 1;
         }
         
@@ -80,10 +81,10 @@ void loop() {
         }
     }
     
-    if ((publishFlag) && (unsigned long)(now - obsidianLast) >= publishInterval) {
+    if ((publishFlag) && (unsigned long)(now - victronLast) >= publishInterval) {
        
         publishFlag = 0;
-        obsidianLast = now;
+        victronLast = now;
         
         Particle.publish("data", victronString, PRIVATE);
         
