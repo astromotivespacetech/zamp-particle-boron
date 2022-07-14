@@ -20,7 +20,7 @@ int publishInterval = 60000;                    // 60 second intervals
 
 void setup() {
     
-    Serial.begin(115200);
+    Serial1.begin(19200);
 
     // Wait 10 seconds for USB debug serial to be connected (plus 1 more)
     waitFor(Serial.isConnected, 10000);
@@ -67,26 +67,25 @@ void loop() {
         }
     }
   
-    if (Serial.available()) {
-
-        if (publishFlag == 0) {
-            victronLast = millis();
-            publishFlag = 1;
-        }
+    if (Serial1.available()) {
         
-        while (Serial.available() > 0) {
-
-            char c = char(Serial.read());
-            victronString.concat(c);
-        }
+        if (!publishFlag) {
+            publishFlag = 1;
+            victronLast = now;
+        
+            while (Serial1.available() > 0) {
+                char c = char(Serial1.read());
+                victronString.concat(c);
+            }
+        } 
     }
     
-    if ((publishFlag) && (unsigned long)(now - victronLast) >= publishInterval) {
-       
-        publishFlag = 0;
-        victronLast = now;
+    if ((unsigned long)(now - victronLast) >= publishInterval) {
         
-        Particle.publish("data", victronString, PRIVATE);
+        if (publishFlag) {
+            publishFlag = 0;
+            Particle.publish("data", victronString, PRIVATE);
+        } 
         
         victronString = "";
     }
